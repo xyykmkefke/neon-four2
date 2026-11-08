@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON FOUR2 · 霓虹四二</title>
+<style>
+:root{--bg:#07070d;--panel:#0d1020;--cyan:#39f6e6;--pink:#ff4fd8;--amber:#ffc457;--dim:#8892b4;--line:rgba(57,246,230,.22)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:#e3ebff;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+body{padding:26px 16px 56px;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px),radial-gradient(900px 460px at 50% -12%,rgba(57,246,230,.12),transparent 70%)}
+.wrap{max-width:700px;margin:0 auto}
+h1{margin:0;font-size:30px;letter-spacing:.22em;color:var(--cyan);text-shadow:0 0 12px rgba(57,246,230,.65),0 0 34px rgba(57,246,230,.25)}
+.sub{margin:8px 0 26px;color:var(--dim);font-size:13px;letter-spacing:.06em}
+.panel{background:linear-gradient(160deg,rgba(20,24,46,.95),rgba(9,11,24,.95));border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 0 0 1px rgba(255,79,216,.06),0 18px 50px rgba(0,0,0,.55)}
+.label{font-size:11px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+.target{font-size:76px;line-height:1.05;font-weight:700;color:var(--pink);text-shadow:0 0 16px rgba(255,79,216,.6),0 0 44px rgba(255,79,216,.24);margin:6px 0 4px}
+.rule{color:var(--dim);font-size:13px;margin-bottom:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 260px;min-width:0;background:#05060d;border:1px solid var(--line);border-radius:9px;color:var(--cyan);font:16px ui-monospace,Consolas,monospace;padding:13px 15px;outline:none;letter-spacing:.05em}
+input[type=text]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(57,246,230,.12)}
+button{background:transparent;border:1px solid var(--line);color:#dfe8ff;border-radius:9px;padding:12px 16px;font:13px ui-monospace,Consolas,monospace;letter-spacing:.06em;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(57,246,230,.18)}
+button.primary{border-color:var(--cyan);color:var(--cyan)}
+button.primary:hover{background:rgba(57,246,230,.1)}
+.allowed{margin:12px 0 0;color:var(--dim);font-size:12px;line-height:1.7}
+.allowed code{color:var(--amber);background:rgba(255,196,87,.08);padding:1px 5px;border-radius:4px}
+.result{margin:18px 0 0;min-height:44px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(5,6,13,.7);font-size:14px;line-height:1.5;color:#c8d4f0}
+.result.ok{border-color:rgba(57,246,230,.7);color:var(--cyan);box-shadow:0 0 18px rgba(57,246,230,.12)}
+.result.bad{border-color:rgba(255,79,216,.55);color:#ffa8e8}
+.hint{margin:10px 0 0;min-height:18px;color:var(--amber);font-size:13px}
+.stats{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.stat{flex:1 1 120px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:rgba(5,6,13,.55)}
+.stat b{display:block;font-size:22px;color:var(--cyan);margin-top:4px}
+.foot{margin-top:22px;color:var(--dim);font-size:12px;line-height:1.8}
+.foot span{color:var(--pink)}
+@media(max-width:480px){.target{font-size:58px}h1{font-size:23px}.panel{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NEON FOUR2</h1>
+  <p class="sub">霓虹四二 // 用恰好四个 2，造出屏幕上的那个数</p>
+
+  <div class="panel">
+    <div class="label">TARGET / 目标</div>
+    <div class="target" id="target">8</div>
+    <div class="rule">只允许数字 2。必须不多不少用 <b>四个</b>。目标是造出上面这个数。</div>
+
+    <div class="row">
+      <input type="text" id="expr" autocomplete="off" spellcheck="false" placeholder="例如 2+2+2+2" aria-label="表达式输入">
+      <button class="primary" id="go">检验 ↵</button>
+      <button id="hint">提示</button>
+      <button id="next">换一题</button>
+    </div>
+
+    <p class="allowed">可用：<code>2</code> <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>^</code> <code>!</code> <code>(</code> <code>)</code> <code>.</code> &nbsp;·&nbsp; 允许拼接 <code>22</code>、小数 <code>.2</code>、阶乘 <code>!</code> &nbsp;·&nbsp; 幂右结合，阶乘限 0–20 整数</p>
+
+    <div class="result" id="result" role="status" aria-live="polite">输入表达式，按 Enter 或点「检验」。</div>
+    <p class="hint" id="hintbox"></p>
+
+    <div class="stats">
+      <div class="stat"><span class="label">连胜 STREAK</span><b id="streak">0</b></div>
+      <div class="stat"><span class="label">最佳 BEST</span><b id="best">0</b></div>
+      <div class="stat"><span class="label">已解 SOLVED</span><b id="solved">0</b></div>
+    </div>
+  </div>
+
+  <p class="foot">单文件 · 零依赖 · 无网络请求 · 记录只存在你自己的浏览器里。<br>
+  灵感来自一个老谜题「用四个 2 表示任意整数」；表达式解析、界面与题库全部原创。<br>
+  <span>Atlas</span> · NEON FOUR2 · 娱乐用途</p>
+</div>
+
+<script>
+// --- CORE START ---
+var SOLUTIONS = {
+  0:'2+2-2-2', 1:'(2+2)/(2+2)', 2:'2/2+2/2', 3:'2+2-2/2',
+  4:'2*2+2-2', 5:'2+2+2/2', 6:'2*2*2-2', 7:'2/.2/2+2',
+  8:'2+2+2+2', 9:'22/2-2', 10:'2*2*2+2', 12:'(2+2+2)*2',
+  14:'(2+2)^2-2', 16:'2*2*2*2', 18:'22-2-2', 111:'222/2'
+};
+var TARGETS = Object.keys(SOLUTIONS).map(Number);
+
+function tokenize(src){
+  var out=[], i=0;
+  while(i<src.length){
+    var c=src.charAt(i);
+    if(c===' '||c==='\t'){ i++; continue; }
+    if(c==='2'||c==='.'){
+      var j=i, dots=0;
+      while(j<src.length&&(src.charAt(j)==='2'||src.charAt(j)==='.')){
+        if(src.charAt(j)==='.'){ dots++; if(dots>1) throw new Error('一个数字里只能有一个小数点'); }
+        j++;
+      }
+      var raw=src.slice(i,j);
+      if(raw.indexOf('2')===-1) throw new Error('小数点前后要有 2');
+      var v=Number(raw);
+      if(!Number.isFinite(v)) throw new Error('数字格式不合法');
+      out.push({k:'num',v:v}); i=j; continue;
+    }
+    if('+-*/^()!'.indexOf(c)!==-1){ out.push({k:c}); i++; continue; }
+    throw new Error('不允许的字符：'+c);
+  }
+  return out;
+}
+
+function fact(n){
+  if(!Number.isInteger(n)||n<0||n>20) throw new Error('阶乘只支持 0 到 20 的整数');
+  var r=1; for(var k=2;k<=n;k++) r*=k; return r;
+}
+
+function parseValue(tokens){
+  var p=0;
+  function eat(k){ if(tokens[p]&&tokens[p].k===k){ p++; return true; } return false; }
+  function atom(){
+    var t=tokens[p];
+    if(!t) throw new Error('表达式不完整');
+    if(t.k==='num'){ p++; return t.v; }
+    if(t.k==='('){ p++; var v=add(); if(!eat(')')) throw new Error('缺少右括号'); return v; }
+    throw new Error('这里需要数字或左括号');
+  }
+  function postfix(){ var v=atom(); while(eat('!')) v=fact(v); return v; }
+  function power(){ var b=postfix(); if(eat('^')) return Math.pow(b, unary()); return b; }
+  function unary(){ if(eat('-')) return -unary(); return power(); }
+  function mul(){
+    var v=unary();
+    for(;;){
+      if(eat('*')) v*=unary();
+      else if(eat('/')){ var d=unary(); if(d===0) throw new Error('不能除以 0'); v/=d; }
+      else return v;
+    }
+  }
+  function add(){
+    var v=mul();
+    for(;;){ if(eat('+')) v+=mul(); else if(eat('-')) v-=mul(); else return v; }
+  }
+  var value=add();
+  if(p!==tokens.length) throw new Error('多余的符号');
+  if(!Number.isFinite(value)) throw new Error('结果不是有限数');
+  return value;
+}
+
+function evaluate(src, target){
+  var twos=(src.match(/2/g)||[]).length;
+  if(twos!==4) return {ok:false,msg:'必须恰好用四个 2，当前用了 '+twos+' 个'};
+  var v;
+  try{ v=parseValue(tokenize(src)); }
+  catch(e){ return {ok:false,msg:e.message}; }
+  if(Math.abs(v-target)>1e-9) return {ok:false,value:v,msg:'算出来是 '+(Math.round(v*1e6)/1e6)+'，不是 '+target};
+  return {ok:true,value:v,msg:'正确！'};
+}
+// --- CORE END ---
+
+var $=function(id){ return document.getElementById(id); };
+var stats=loadStats();
+var target=TARGETS[0];
+
+function loadStats(){
+  try{
+    var s=JSON.parse(localStorage.getItem('neon-four2-stats')||'{}');
+    return {streak:Number(s.streak)||0,best:Number(s.best)||0,solved:Number(s.solved)||0};
+  }catch(e){ return {streak:0,best:0,solved:0}; }
+}
+function saveStats(){ try{ localStorage.setItem('neon-four2-stats',JSON.stringify(stats)); }catch(e){} }
+function render(){
+  $('target').textContent=String(target);
+  $('streak').textContent=String(stats.streak);
+  $('best').textContent=String(stats.best);
+  $('solved').textContent=String(stats.solved);
+}
+function pickTarget(prev){
+  var t;
+  do{ t=TARGETS[Math.floor(Math.random()*TARGETS.length)]; }
+  while(TARGETS.length>1&&t===prev);
+  return t;
+}
+function newRound(){
+  target=pickTarget(target);
+  $('expr').value='';
+  $('hintbox').textContent='';
+  $('result').className='result';
+  $('result').textContent='输入表达式，按 Enter 或点「检验」。';
+  render();
+  $('expr').focus();
+}
+function submit(){
+  var raw=$('expr').value.trim();
+  if(!raw){ $('result').className='result bad'; $('result').textContent='先写点什么吧。'; return; }
+  var r=evaluate(raw,target);
+  $('result').className='result '+(r.ok?'ok':'bad');
+  if(r.ok){
+    stats.streak+=1; stats.solved+=1;
+    if(stats.streak>stats.best) stats.best=stats.streak;
+    saveStats(); render();
+    $('result').textContent='✓ 正确！'+raw+' = '+target+'　连胜 '+stats.streak+'　点「换一题」继续。';
+  }else{
+    stats.streak=0; saveStats(); render();
+    $('result').textContent='✗ '+r.msg;
+  }
+}
+$('go').addEventListener('click',submit);
+$('hint').addEventListener('click',function(){
+  $('hintbox').textContent='一个可行解：'+SOLUTIONS[target]+'　（自己敲一遍才算过关）';
+});
+$('next').addEventListener('click',newRound);
+$('expr').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+newRound();
+</script>
+</body>
+</html>
